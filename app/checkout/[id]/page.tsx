@@ -57,7 +57,7 @@ export default function CheckoutPage() {
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--arena-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', padding: 40 }}>
           <div style={{
-            width: 80, height: 80, borderRadius: '50%', backgroundColor: 'var(--selva-light)',
+            width: 80, height: 80, borderRadius: '50%', backgroundColor: 'var(--terracota-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 24px', color: '#FFF', fontSize: 36,
           }}>✓</div>
@@ -205,7 +205,7 @@ export default function CheckoutPage() {
 
         <button onClick={handleSubmit} disabled={submitting} style={{
           width: '100%', padding: 16, borderRadius: 'var(--radius)',
-          border: 'none', backgroundColor: 'var(--selva-light)', color: '#FFF',
+          border: 'none', backgroundColor: 'var(--terracota-light)', color: '#FFF',
           fontSize: 16, fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer',
           opacity: submitting ? 0.7 : 1,
         }}>

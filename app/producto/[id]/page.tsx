@@ -74,7 +74,7 @@ export default function ProductoPage() {
               {product.descripcion}
             </p>
 
-            <p style={{ fontSize: 13, color: 'var(--selva-light)', fontWeight: 600, marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: 'var(--terracota-light)', fontWeight: 600, marginBottom: 20 }}>
               ✓ {product.stock} unidades disponibles
             </p>
 

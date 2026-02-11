@@ -308,7 +308,7 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button type="submit" style={{
                         flex: 1, padding: 14, borderRadius: 8, border: 'none',
-                        backgroundColor: 'var(--selva-light)', color: '#FFF',
+                        backgroundColor: 'var(--terracota-light)', color: '#FFF',
                         fontSize: 15, fontWeight: 600, cursor: 'pointer',
                       }}>💾 Guardar datos de pago</button>
                       <button type="button" onClick={() => setShowConfigPago(false)} style={{
@@ -324,7 +324,7 @@ export default function DashboardPage() {
 
             <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
               {[
-                { label: 'Ventas totales', value: `$${totalVentas.toFixed(2)}`, sub: 'este mes', color: 'var(--selva-light)', icon: '💰' },
+                { label: 'Ventas totales', value: `$${totalVentas.toFixed(2)}`, sub: 'este mes', color: 'var(--terracota-light)', icon: '💰' },
                 { label: 'Pedidos pendientes', value: pendientes, sub: 'requieren acción', color: 'var(--rojo)', icon: '📦' },
                 { label: 'Productos activos', value: productos.filter(p => p.activo).length, sub: 'en tu tienda', color: 'var(--tierra)', icon: '🏺' },
                 { label: 'Total pedidos', value: pedidos.length, sub: 'histórico', color: 'var(--oro)', icon: '📋' },
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                         <>
                           <button onClick={() => updateOrderStatus(order.id, 'confirmado')} style={{
                             padding: '8px 16px', borderRadius: 6, border: 'none',
-                            backgroundColor: 'var(--selva-light)', color: '#FFF',
+                            backgroundColor: 'var(--terracota-light)', color: '#FFF',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer',
                           }}>✓ Confirmar pago</button>
                           <a href={`https://wa.me/${order.telefono_comprador.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{
@@ -503,7 +503,7 @@ export default function DashboardPage() {
             <div className="sales-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
               <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius)', padding: 24, boxShadow: 'var(--shadow-sm)' }}>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Ingresos totales</p>
-                <p style={{ fontSize: 36, fontWeight: 700, color: 'var(--selva-light)' }}>${totalVentas.toFixed(2)}</p>
+                <p style={{ fontSize: 36, fontWeight: 700, color: 'var(--terracota-light)' }}>${totalVentas.toFixed(2)}</p>
               </div>
               <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius)', padding: 24, boxShadow: 'var(--shadow-sm)' }}>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Total de pedidos</p>

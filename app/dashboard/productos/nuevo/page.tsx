@@ -101,7 +101,7 @@ export default function NuevoProductoPage() {
 
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: 14, borderRadius: 'var(--radius)', border: 'none',
-              backgroundColor: 'var(--selva-light)', color: '#FFF', fontSize: 15, fontWeight: 600,
+              backgroundColor: 'var(--terracota-light)', color: '#FFF', fontSize: 15, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}>{loading ? 'Publicando...' : 'Publicar producto'}</button>
           </form>
