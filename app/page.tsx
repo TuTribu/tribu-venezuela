@@ -40,7 +40,7 @@ export default function HomePage() {
 
       {/* HERO */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--tierra) 0%, var(--tierra-dark) 50%, var(--terracota-light) 100%)',
+        background: 'linear-gradient(135deg, var(--terracota) 0%, var(--terracota-dark) 50%, var(--terracota-light) 100%)',
         padding: '60px 24px', textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
         <h1 style={{
