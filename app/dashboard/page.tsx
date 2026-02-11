@@ -43,6 +43,14 @@ export default function DashboardPage() {
     router.push('/');
   }
 
+  async function deleteProducto(productId: string) {
+    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    const { error } = await supabase.from('productos').delete().eq('id', productId);
+    if (!error) {
+      setProductos(productos.filter(p => p.id !== productId));
+    }
+  }
+
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Cargando dashboard...</div>;
 
   const totalVentas = pedidos.filter(o => ['confirmado', 'enviado', 'entregado'].includes(o.estado)).reduce((s, o) => s + o.monto, 0);
@@ -221,6 +229,13 @@ export default function DashboardPage() {
                     </div>
                     <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tierra)' }}>${product.precio.toFixed(2)}</p>
                     <StatusBadge status={product.activo ? 'active' : 'pendiente'} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => deleteProducto(product.id)} style={{
+                        padding: '8px 12px', borderRadius: 6, border: '1px solid var(--rojo)',
+                        backgroundColor: 'transparent', color: 'var(--rojo)',
+                        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}>🗑️ Eliminar</button>
+                    </div>
                   </div>
                 ))}
               </div>
