@@ -46,7 +46,7 @@ export default function HomePage() {
         <h1 style={{
           fontFamily: "'Playfair Display', serif", fontSize: 42, fontWeight: 700,
           color: '#FFF8F0', marginBottom: 12,
-        }}>Artesanía con alma TEST</h1>
+        }}>Artesanía con alma</h1>
         <p style={{
           color: 'rgba(255,248,240,0.8)', fontSize: 17, maxWidth: 500, margin: '0 auto 28px',
           lineHeight: 1.6,
