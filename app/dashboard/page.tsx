@@ -14,6 +14,14 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showConfigPago, setShowConfigPago] = useState(false);
+  const [pagoForm, setPagoForm] = useState({
+    telefono: '',
+    cedula: '',
+    banco: 'Banesco',
+    zelleEmail: '',
+    zelleNombre: ''
+  });
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -48,6 +56,31 @@ export default function DashboardPage() {
     const { error } = await supabase.from('productos').delete().eq('id', productId);
     if (!error) {
       setProductos(productos.filter(p => p.id !== productId));
+    }
+  }
+
+  async function guardarDatosPago(e: React.FormEvent) {
+    e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const datosPago = {
+      datos_pago_movil: pagoForm.telefono ? {
+        telefono: pagoForm.telefono,
+        cedula: pagoForm.cedula,
+        banco: pagoForm.banco
+      } : null,
+      datos_zelle: pagoForm.zelleEmail ? {
+        email: pagoForm.zelleEmail,
+        nombre: pagoForm.zelleNombre
+      } : null
+    };
+
+    const { error } = await supabase.from('artesanos').update(datosPago).eq('id', user.id);
+    if (!error) {
+      setArtesano({ ...artesano!, ...datosPago });
+      setShowConfigPago(false);
+      alert('✅ Datos de pago guardados correctamente');
     }
   }
 
@@ -144,6 +177,150 @@ export default function DashboardPage() {
               ¡Hola, {artesano?.nombre?.split(' ')[0]}! 👋
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 28 }}>Resumen de tu tienda</p>
+
+            {/* CHECKLIST DE PERFIL */}
+            {(productos.length === 0 || !artesano?.datos_pago_movil) && (
+              <div style={{ backgroundColor: '#FFF9E6', border: '2px solid var(--oro)', borderRadius: 'var(--radius)', padding: 20, marginBottom: 28 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: 'var(--tierra)' }}>🚀 Completa tu tienda para empezar a vender</h3>
+                
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 20 }}>{productos.length > 0 ? '✅' : '⭕'}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 600 }}>Sube tu primer producto</p>
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Agrega fotos, descripción y precio</p>
+                    </div>
+                    {productos.length === 0 && (
+                      <Link href="/dashboard/productos/nuevo" style={{
+                        padding: '8px 16px', borderRadius: 6,
+                        backgroundColor: 'var(--tierra)', color: '#FFF',
+                        fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                      }}>+ Agregar</Link>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 20 }}>{artesano?.datos_pago_movil ? '✅' : '⭕'}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 600 }}>Configura cómo te pagan</p>
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Pago Móvil (obligatorio) o Zelle (opcional)</p>
+                    </div>
+                    {!artesano?.datos_pago_movil && (
+                      <button onClick={() => setShowConfigPago(true)} style={{
+                        padding: '8px 16px', borderRadius: 6,
+                        backgroundColor: 'var(--oro)', color: '#FFF',
+                        fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
+                      }}>Configurar</button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 20 }}>{pedidos.length > 0 ? '✅' : '⭕'}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 600 }}>Recibe tu primer pedido</p>
+                      <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Comparte tu tienda: tribuarte.com</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL DE CONFIGURACIÓN DE PAGO */}
+            {showConfigPago && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div style={{
+                  backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius)',
+                  padding: 32, maxWidth: 480, width: '90%', maxHeight: '90vh', overflow: 'auto',
+                }}>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, marginBottom: 8 }}>💳 Configura tus datos de pago</h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>Los clientes te pagarán usando estos datos</p>
+
+                  <form onSubmit={guardarDatosPago}>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--tierra)' }}>📱 Pago Móvil (Obligatorio para Venezuela)</h3>
+                    
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Teléfono</label>
+                      <input 
+                        value={pagoForm.telefono} 
+                        onChange={e => setPagoForm({...pagoForm, telefono: e.target.value})}
+                        placeholder="0412-555-1234" 
+                        required
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 14 }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Cédula</label>
+                      <input 
+                        value={pagoForm.cedula} 
+                        onChange={e => setPagoForm({...pagoForm, cedula: e.target.value})}
+                        placeholder="V-12.345.678" 
+                        required
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 14 }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Banco</label>
+                      <select 
+                        value={pagoForm.banco} 
+                        onChange={e => setPagoForm({...pagoForm, banco: e.target.value})}
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 14, backgroundColor: '#FFF' }}
+                      >
+                        <option value="Banesco">Banesco</option>
+                        <option value="Mercantil">Mercantil</option>
+                        <option value="Banco de Venezuela">Banco de Venezuela</option>
+                        <option value="BBVA Provincial">BBVA Provincial</option>
+                        <option value="BOD">BOD</option>
+                        <option value="Bancaribe">Bancaribe</option>
+                        <option value="BNC">BNC</option>
+                        <option value="Banplus">Banplus</option>
+                        <option value="Otro">Otro</option>
+                      </select>
+                    </div>
+
+                    <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--tierra)' }}>💵 Zelle (Opcional - para clientes en USA)</h3>
+                    
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Email de Zelle</label>
+                      <input 
+                        value={pagoForm.zelleEmail} 
+                        onChange={e => setPagoForm({...pagoForm, zelleEmail: e.target.value})}
+                        placeholder="tuemail@ejemplo.com"
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 14 }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Nombre en Zelle</label>
+                      <input 
+                        value={pagoForm.zelleNombre} 
+                        onChange={e => setPagoForm({...pagoForm, zelleNombre: e.target.value})}
+                        placeholder="Tu Nombre Completo"
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 14 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button type="submit" style={{
+                        flex: 1, padding: 14, borderRadius: 8, border: 'none',
+                        backgroundColor: 'var(--selva-light)', color: '#FFF',
+                        fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                      }}>💾 Guardar datos de pago</button>
+                      <button type="button" onClick={() => setShowConfigPago(false)} style={{
+                        padding: 14, borderRadius: 8, border: '1px solid var(--border)',
+                        backgroundColor: 'transparent', color: 'var(--text-secondary)',
+                        fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                      }}>Cancelar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
               {[
