@@ -410,10 +410,11 @@ export default function DashboardPage() {
                     <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tierra)' }}>${product.precio.toFixed(2)}</p>
                     <StatusBadge status={product.activo ? 'active' : 'pendiente'} />
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Link href={`/dashboard/productos/${product.id}`} style={{
+                      <Link href={`/dashboard/productos/editar/${product.id}`} style={{
                         padding: '8px 12px', borderRadius: 6, border: '1px solid var(--tierra)',
                         backgroundColor: 'transparent', color: 'var(--tierra)',
                         fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
                       }}>✏️ Editar</Link>
                       <button onClick={() => deleteProducto(product.id)} style={{
                         padding: '8px 12px', borderRadius: 6, border: '1px solid var(--rojo)',
