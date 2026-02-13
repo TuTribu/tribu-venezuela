@@ -132,10 +132,10 @@ export default function ProductoPage() {
                 {images.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => { setSelectedImage(i); setLightboxOpen(true); }}
+                    onClick={() => setSelectedImage(i)}
                     style={{
                       width: 72, height: 72, flexShrink: 0,
-                      borderRadius: 8, overflow: 'hidden', cursor: 'zoom-in',
+                      borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
                       border: safeSelected === i ? '3px solid var(--tierra)' : '2px solid var(--border)',
                       padding: 0, background: '#f0ebe5',
                       opacity: safeSelected === i ? 1 : 0.6,
