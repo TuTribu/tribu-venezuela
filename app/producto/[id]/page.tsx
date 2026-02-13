@@ -169,8 +169,8 @@ export default function ProductoPage() {
             }}>{product.nombre}</h1>
 
             <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20 }}>
-              Por <strong style={{ color: 'var(--tierra)' }}>{product.artesanos?.nombre}</strong>
-              {product.artesanos?.nombre_tienda ? ` · ${product.artesanos.nombre_tienda}` : ''}
+              Por <strong style={{ color: 'var(--tierra)' }}>{product.artesanos?.nombre_tienda || product.artesanos?.nombre}</strong>
+              {product.artesanos?.nombre_tienda && product.artesanos?.nombre ? ` · ${product.artesanos.nombre}` : ''}
               {product.artesanos?.ubicacion ? ` · ${product.artesanos.ubicacion}` : ''}
             </p>
 
