@@ -399,7 +399,10 @@ export default function DashboardPage() {
                     display: 'flex', gap: 16, backgroundColor: 'var(--bg-card)',
                     borderRadius: 'var(--radius)', padding: 16, boxShadow: 'var(--shadow-sm)', alignItems: 'center',
                   }}>
-                    <img src={product.imagenes?.[0] || 'https://via.placeholder.com/80'} alt="" style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover' }} />
+                    <img src={product.imagenes?.[0] || 'https://via.placeholder.com/80?text=📷'} alt=""
+                      style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=📷'; }}
+                    />
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{product.nombre}</h3>
                       <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{product.categoria} · {product.stock} en stock</p>
@@ -407,6 +410,11 @@ export default function DashboardPage() {
                     <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tierra)' }}>${product.precio.toFixed(2)}</p>
                     <StatusBadge status={product.activo ? 'active' : 'pendiente'} />
                     <div style={{ display: 'flex', gap: 8 }}>
+                      <Link href={`/dashboard/productos/${product.id}`} style={{
+                        padding: '8px 12px', borderRadius: 6, border: '1px solid var(--tierra)',
+                        backgroundColor: 'transparent', color: 'var(--tierra)',
+                        fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'none',
+                      }}>✏️ Editar</Link>
                       <button onClick={() => deleteProducto(product.id)} style={{
                         padding: '8px 12px', borderRadius: 6, border: '1px solid var(--rojo)',
                         backgroundColor: 'transparent', color: 'var(--rojo)',

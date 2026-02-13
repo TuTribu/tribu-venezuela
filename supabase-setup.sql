@@ -92,6 +92,40 @@ CREATE POLICY "Cualquiera puede crear pedido" ON pedidos FOR INSERT WITH CHECK (
 
 -- =============================================
 -- STORAGE para imágenes
--- Crear bucket "productos" en Supabase Dashboard > Storage
--- Marcar como PUBLIC
 -- =============================================
+
+-- 1. Crear el bucket (ejecutar manualmente si no funciona por SQL):
+--    Dashboard > Storage > New Bucket > "productos" > Public
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('productos', 'productos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Políticas de Storage
+
+-- Cualquiera puede ver las imágenes (bucket público)
+CREATE POLICY "Imágenes públicas" ON storage.objects
+  FOR SELECT USING (bucket_id = 'productos');
+
+-- Artesanos autenticados pueden subir imágenes a su carpeta
+CREATE POLICY "Artesanos suben imágenes" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'productos'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Artesanos pueden actualizar sus propias imágenes
+CREATE POLICY "Artesanos actualizan imágenes" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'productos'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Artesanos pueden borrar sus propias imágenes
+CREATE POLICY "Artesanos borran imágenes" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'productos'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );

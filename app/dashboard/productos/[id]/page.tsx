@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { supabase, Producto } from '@/lib/supabase';
 
 const CATEGORIES = ['Cerámica', 'Textiles', 'Joyería', 'Arte Popular', 'Materiales Naturales', 'Decoración'];
 const MAX_IMAGES = 5;
@@ -11,12 +11,13 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface ImageItem {
   id: string;
-  file: File;
+  file?: File;
   preview: string;
-  status: 'pending' | 'uploading' | 'done' | 'error';
-  progress: number;
   url?: string;
+  status: 'existing' | 'pending' | 'uploading' | 'done' | 'error';
+  progress: number;
   error?: string;
+  isNew?: boolean;
 }
 
 function generateId() {
@@ -64,14 +65,64 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.82): Promi
   });
 }
 
-export default function NuevoProductoPage() {
+export default function EditarProductoPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const params = useParams();
+  const productId = params.id as string;
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<ImageItem[]>([]);
-  const [form, setForm] = useState({ nombre: '', descripcion: '', precio: '', categoria: 'Cerámica', stock: '1' });
+  const [form, setForm] = useState({ nombre: '', descripcion: '', precio: '', categoria: 'Cerámica', stock: '1', activo: true });
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cargar producto existente
+  useEffect(() => {
+    loadProduct();
+  }, [productId]);
+
+  async function loadProduct() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push('/login'); return; }
+
+    const { data, error } = await supabase
+      .from('productos')
+      .select('*')
+      .eq('id', productId)
+      .eq('artesano_id', user.id)
+      .single();
+
+    if (error || !data) {
+      setError('Producto no encontrado o no tienes permiso para editarlo');
+      setLoading(false);
+      return;
+    }
+
+    const product = data as Producto;
+    setForm({
+      nombre: product.nombre,
+      descripcion: product.descripcion || '',
+      precio: product.precio.toString(),
+      categoria: product.categoria,
+      stock: product.stock.toString(),
+      activo: product.activo,
+    });
+
+    // Cargar imágenes existentes
+    if (product.imagenes && product.imagenes.length > 0) {
+      setImages(product.imagenes.map((url, index) => ({
+        id: `existing-${index}`,
+        preview: url,
+        url: url,
+        status: 'existing',
+        progress: 100,
+      })));
+    }
+
+    setLoading(false);
+  }
 
   const addFiles = useCallback(async (files: File[]) => {
     setError('');
@@ -90,8 +141,12 @@ export default function NuevoProductoPage() {
         setError(`"${file.name}" es muy grande (máx 5MB). Se comprimirá automáticamente.`);
       }
       validFiles.push({
-        id: generateId(), file, preview: URL.createObjectURL(file),
-        status: 'pending', progress: 0,
+        id: generateId(),
+        file,
+        preview: URL.createObjectURL(file),
+        status: 'pending',
+        progress: 0,
+        isNew: true,
       });
     }
 
@@ -118,7 +173,7 @@ export default function NuevoProductoPage() {
   function removeImage(id: string) {
     setImages(prev => {
       const img = prev.find(i => i.id === id);
-      if (img) URL.revokeObjectURL(img.preview);
+      if (img?.isNew && img.preview) URL.revokeObjectURL(img.preview);
       return prev.filter(i => i.id !== id);
     });
     setError('');
@@ -142,7 +197,7 @@ export default function NuevoProductoPage() {
     if (!form.precio || parseFloat(form.precio) <= 0) { setError('Ingresa un precio válido'); return; }
     if (images.length === 0) { setError('Agrega al menos una foto del producto'); return; }
 
-    setLoading(true);
+    setSaving(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -150,74 +205,85 @@ export default function NuevoProductoPage() {
 
       const imageUrls: string[] = [];
 
+      // Procesar todas las imágenes
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
 
-        setImages(prev => prev.map(item =>
-          item.id === img.id ? { ...item, status: 'uploading' as const, progress: 30 } : item
-        ));
+        // Si es imagen existente, mantener URL
+        if (img.status === 'existing' && img.url) {
+          imageUrls.push(img.url);
+          continue;
+        }
 
-        try {
-          const compressed = await compressImage(img.file);
-
+        // Si es nueva, subirla
+        if (img.isNew && img.file) {
           setImages(prev => prev.map(item =>
-            item.id === img.id ? { ...item, progress: 60 } : item
+            item.id === img.id ? { ...item, status: 'uploading', progress: 30 } : item
           ));
 
-          const ext = compressed.name.split('.').pop() || 'jpg';
-          const fileName = `${user.id}/${Date.now()}-${generateId()}.${ext}`;
-
-          const { data, error: uploadError } = await supabase.storage
-            .from('productos')
-            .upload(fileName, compressed, { cacheControl: '3600', upsert: false });
-
-          if (uploadError) throw new Error(uploadError.message);
-
-          if (data) {
-            const { data: urlData } = supabase.storage.from('productos').getPublicUrl(data.path);
-            imageUrls.push(urlData.publicUrl);
+          try {
+            const compressed = await compressImage(img.file);
 
             setImages(prev => prev.map(item =>
-              item.id === img.id ? { ...item, status: 'done' as const, progress: 100, url: urlData.publicUrl } : item
+              item.id === img.id ? { ...item, progress: 60 } : item
             ));
+
+            const ext = compressed.name.split('.').pop() || 'jpg';
+            const fileName = `${user.id}/${Date.now()}-${generateId()}.${ext}`;
+
+            const { data, error: uploadError } = await supabase.storage
+              .from('productos')
+              .upload(fileName, compressed, { cacheControl: '3600', upsert: false });
+
+            if (uploadError) throw new Error(uploadError.message);
+
+            if (data) {
+              const { data: urlData } = supabase.storage.from('productos').getPublicUrl(data.path);
+              imageUrls.push(urlData.publicUrl);
+
+              setImages(prev => prev.map(item =>
+                item.id === img.id ? { ...item, status: 'done', progress: 100, url: urlData.publicUrl } : item
+              ));
+            }
+          } catch (uploadErr: any) {
+            setImages(prev => prev.map(item =>
+              item.id === img.id ? { ...item, status: 'error', error: uploadErr.message } : item
+            ));
+            console.error('Upload error:', uploadErr);
           }
-        } catch (uploadErr: any) {
-          setImages(prev => prev.map(item =>
-            item.id === img.id ? { ...item, status: 'error' as const, error: uploadErr.message } : item
-          ));
-          console.error('Upload error:', uploadErr);
         }
       }
 
-      console.log('URLs de imágenes a guardar:', imageUrls);
-      console.log('Número de imágenes:', imageUrls.length);
-
       if (imageUrls.length === 0) {
-        setError('No se pudo subir ninguna imagen. Verifica que el bucket "productos" exista en Supabase Storage y sea público.');
-        setLoading(false);
+        setError('No se pudo procesar ninguna imagen.');
+        setSaving(false);
         return;
       }
 
-      const { error: insertError } = await supabase.from('productos').insert({
-        artesano_id: user.id,
-        nombre: form.nombre.trim(),
-        descripcion: form.descripcion.trim(),
-        precio: parseFloat(form.precio),
-        categoria: form.categoria,
-        stock: parseInt(form.stock) || 0,
-        imagenes: imageUrls,
-      });
+      // Actualizar producto
+      const { error: updateError } = await supabase
+        .from('productos')
+        .update({
+          nombre: form.nombre.trim(),
+          descripcion: form.descripcion.trim(),
+          precio: parseFloat(form.precio),
+          categoria: form.categoria,
+          stock: parseInt(form.stock) || 0,
+          imagenes: imageUrls,
+          activo: form.activo,
+        })
+        .eq('id', productId);
 
-      if (insertError) {
-        setError('Error al crear producto: ' + insertError.message);
-        setLoading(false);
+      if (updateError) {
+        setError('Error al actualizar producto: ' + updateError.message);
+        setSaving(false);
         return;
       }
 
-      router.push('/dashboard');
+      router.push('/dashboard?tab=productos');
     } catch (err: any) {
       setError('Error inesperado: ' + (err.message || 'Inténtalo de nuevo'));
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -226,18 +292,26 @@ export default function NuevoProductoPage() {
     border: '1.5px solid var(--border)', fontSize: 14, backgroundColor: '#FFF',
   };
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--arena-light)', padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Cargando producto...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--arena-light)', padding: 24 }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <button onClick={() => router.push('/dashboard')} style={{
+        <button onClick={() => router.push('/dashboard?tab=productos')} style={{
           background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
           fontSize: 14, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6,
-        }}>← Volver al dashboard</button>
+        }}>← Volver a mis productos</button>
 
         <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius)', padding: 32, boxShadow: 'var(--shadow-sm)' }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, marginBottom: 8 }}>Agregar nuevo producto</h2>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, marginBottom: 8 }}>Editar producto</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 24 }}>
-            Las fotos son lo más importante — muestra tu artesanía desde varios ángulos
+            Actualiza la información de tu artesanía
           </p>
 
           {error && (
@@ -274,7 +348,7 @@ export default function NuevoProductoPage() {
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFileInput} style={{ display: 'none' }} />
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
                   <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    {dragOver ? 'Suelta las fotos aquí' : 'Toca o arrastra fotos aquí'}
+                    {dragOver ? 'Suelta las fotos aquí' : 'Agregar más fotos'}
                   </p>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                     JPG, PNG o WebP · Máx 5MB · {MAX_IMAGES - images.length} restante{MAX_IMAGES - images.length !== 1 ? 's' : ''}
@@ -338,7 +412,7 @@ export default function NuevoProductoPage() {
                         }}>!</div>
                       )}
 
-                      {!loading && (
+                      {!saving && (
                         <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 3 }}>
                           {index > 0 && (
                             <button type="button" onClick={(e) => { e.stopPropagation(); moveImage(index, -1); }}
@@ -379,7 +453,7 @@ export default function NuevoProductoPage() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>{form.descripcion.length}/2000</p>
             </div>
 
-            <div className="new-product-prices" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Precio USD *</label>
                 <input value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} placeholder="0.00" type="number" step="0.01" min="0.01" required style={inputStyle} />
@@ -396,20 +470,26 @@ export default function NuevoProductoPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} style={{
-              width: '100%', padding: 16, borderRadius: 'var(--radius)', border: 'none',
-              backgroundColor: loading ? 'var(--text-muted)' : 'var(--terracota-light)',
-              color: '#FFF', fontSize: 16, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s',
-            }}>
-              {loading ? '⏳ Subiendo fotos y publicando...' : `Publicar producto (${images.length} foto${images.length !== 1 ? 's' : ''})`}
-            </button>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.activo}
+                  onChange={e => setForm({ ...form, activo: e.target.checked })}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 14 }}>Producto activo (visible en la tienda)</span>
+              </label>
+            </div>
 
-            {loading && (
-              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', marginTop: 12 }}>
-                No cierres esta página mientras se suben las fotos...
-              </p>
-            )}
+            <button type="submit" disabled={saving} style={{
+              width: '100%', padding: 16, borderRadius: 'var(--radius)', border: 'none',
+              backgroundColor: saving ? 'var(--text-muted)' : 'var(--terracota-light)',
+              color: '#FFF', fontSize: 16, fontWeight: 600,
+              cursor: saving ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s',
+            }}>
+              {saving ? '⏳ Guardando cambios...' : '💾 Guardar cambios'}
+            </button>
           </form>
         </div>
       </div>

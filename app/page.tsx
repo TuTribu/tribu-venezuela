@@ -5,7 +5,7 @@ import { supabase, Producto } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 
-const CATEGORIES = ['Todas', 'Cerámica', 'Textiles', 'Joyería', 'Arte Popular', 'Decoración'];
+const CATEGORIES = ['Todas', 'Cerámica', 'Textiles', 'Joyería', 'Arte Popular', 'Materiales Naturales', 'Decoración'];
 
 export default function HomePage() {
   const [products, setProducts] = useState<Producto[]>([]);

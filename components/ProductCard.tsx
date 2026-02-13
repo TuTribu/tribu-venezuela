@@ -16,6 +16,9 @@ export default function ProductCard({ product }: { product: Producto }) {
             src={product.imagenes?.[0] || 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80'}
             alt={product.nombre}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80';
+            }}
           />
           <span style={{
             position: 'absolute', top: 12, left: 12, padding: '4px 10px',
