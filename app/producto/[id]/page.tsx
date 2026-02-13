@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Producto } from '@/lib/supabase';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function ProductoPage() {
   const params = useParams();
   const [product, setProduct] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => { loadProduct(); }, [params.id]);
 
@@ -71,10 +73,11 @@ export default function ProductoPage() {
               <img
                 src={images[safeSelected]}
                 alt={product.nombre}
-                style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover' }}
+                style={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover', cursor: 'zoom-in' }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80';
                 }}
+                onClick={() => setLightboxOpen(true)}
               />
 
               {/* Prev / Next arrows */}
@@ -129,10 +132,10 @@ export default function ProductoPage() {
                 {images.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedImage(i)}
+                    onClick={() => { setSelectedImage(i); setLightboxOpen(true); }}
                     style={{
                       width: 72, height: 72, flexShrink: 0,
-                      borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
+                      borderRadius: 8, overflow: 'hidden', cursor: 'zoom-in',
                       border: safeSelected === i ? '3px solid var(--tierra)' : '2px solid var(--border)',
                       padding: 0, background: '#f0ebe5',
                       opacity: safeSelected === i ? 1 : 0.6,
@@ -218,6 +221,15 @@ export default function ProductoPage() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox for full-screen image viewing */}
+      <ImageLightbox
+        images={images}
+        initialIndex={safeSelected}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        productName={product.nombre}
+      />
     </div>
   );
 }
