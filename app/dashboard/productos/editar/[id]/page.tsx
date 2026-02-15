@@ -68,6 +68,7 @@ export default function EditarProductoPage() {
   const [success, setSuccess] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
   useEffect(() => {
     loadProduct();
@@ -153,7 +154,13 @@ export default function EditarProductoPage() {
   function removeImage(id: string) {
     setImages(prev => {
       const img = prev.find(i => i.id === id);
-      if (img && img.file) URL.revokeObjectURL(img.preview);
+      if (img && img.file) {
+        URL.revokeObjectURL(img.preview);
+      }
+      // Track existing images for deletion from storage
+      if (img?.status === 'existing' && img.url) {
+        setImagesToDelete(prev => [...prev, img.url!]);
+      }
       return prev.filter(i => i.id !== id);
     });
     setError('');
@@ -240,6 +247,28 @@ export default function EditarProductoPage() {
         return;
       }
 
+      // Delete removed images from Supabase Storage
+      if (imagesToDelete.length > 0) {
+        for (const url of imagesToDelete) {
+          try {
+            // Extract filename from URL
+            const urlObj = new URL(url);
+            const pathMatch = urlObj.pathname.match(/\/productos\/(.+)$/);
+            if (pathMatch) {
+              const filePath = pathMatch[1];
+              await supabase.storage.from('productos').remove([filePath]);
+              console.log('Deleted image:', filePath);
+            }
+          } catch (delErr) {
+            console.error('Error deleting image from storage:', delErr);
+            // Continue even if deletion fails - don't block the update
+          }
+        }
+      }
+
+      const stockValue = parseInt(form.stock);
+      console.log('Saving stock:', stockValue, 'from form:', form.stock);
+
       const { error: updateError } = await supabase
         .from('productos')
         .update({
@@ -247,7 +276,7 @@ export default function EditarProductoPage() {
           descripcion: form.descripcion.trim(),
           precio: parseFloat(form.precio),
           categoria: form.categoria,
-          stock: parseInt(form.stock) || 0,
+          stock: isNaN(stockValue) ? 0 : stockValue,
           activo: form.activo,
           imagenes: finalUrls,
           updated_at: new Date().toISOString(),
